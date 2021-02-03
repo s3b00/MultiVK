@@ -6,10 +6,11 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 import time
 import re
 
-menu = "0. Повторно вызвать меню\n1. Добавить новый аккаунт\n2. Очистить файл с аккаунтами \
-    \n3. Открыть следующий аккаунт\n4. Отправить рассылку по пользователям \
-    \n5. Выйти из программы"
+menu = "0. Повторно вызвать меню\n\n1. Добавить новый аккаунт\n2. Очистить файл с аккаунтами \
+    \n3. Взять следующий аккаунт\n4. Зайти на текущий аккаунт\n5. Отправить рассылку по пользователям \
+    \n6. Сделать рассылку со всех аккаунтов всем пользователям\n7. Выйти из программы"
 print(menu)
+
 
 def write_msg(user_id, message):
     vk.method('messages.send', {'user_id': user_id, 'message': message})
@@ -33,6 +34,8 @@ def loginInAccount(tlogin, tpassword):
         password.send_keys(tpassword)
         button = driver.find_element_by_id("index_login_button")
         button.click()
+
+        print(driver.current_url)
     except Exception as e:
         print(f"Непредвиденная ошибка со стороны драйвера браузера. {e}")
 
@@ -61,6 +64,7 @@ with open("receivers.txt", 'r+') as accounts:
 
 if counter_accs > 1:
     pointer = 0
+    current_user = (database[pointer][0], database[pointer][1])
 else:
     print("\nАккаунтов для использования не было обнаружено")
 
@@ -70,6 +74,13 @@ if counter_accs <= 1:
 
 def getChoose():
     return input("\nВыберите пункт меню: ")
+
+
+def setCurrentUser():
+    global current_user
+    global pointer
+    current_user = database[pointer][0], database[pointer][1]
+    print(f"Текущий пользователь:\nЛогин: {current_user[0]}\nПароль: {current_user[1]}")
 
 
 while True:
@@ -96,25 +107,26 @@ while True:
                 print("Записи были удалены")
     elif choose == "3":
         if pointer < len(database):
-            login, password = database[pointer][0], database[pointer][1]
-            print(login)
-            print(password)
-            loginInAccount(login, password)
             pointer += 1
+            setCurrentUser()
         else:
             print("Все аккаунты были использованы!")
     elif choose == "4":
+        print("Вход с текущего пользователя")
+        loginInAccount(current_user[0], current_user[1])
+    elif choose == "5":
         message = input("Что отправить для рассылки?")
 
-        login, password = database[pointer][0], database[pointer][1]
-        vk = vk_api.VkApi(login=login, password=password)
+        vk = vk_api.VkApi(login=current_user[0], password=current_user[1])
 
         for account in receivers:
             try:
                 write_msg(account, message)
             except Exception as e:
                 print("Ошибка отправки сообщения. Текст ошибки: " + e)
-    elif choose == "5":
+    elif choose == "6":
+        print("Сообщения будут отправлены!")
+    elif choose == "7":
         exit()
     else:
         print("Неизвестная команда!")
